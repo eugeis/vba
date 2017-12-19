@@ -16,77 +16,77 @@ ActivePresentation.Slides(2).Timeline.MainSequence(2).Behaviors(1).MotionEffect.
 
 End Sub
 
+Sub Timeline1()
+    Timeline 425, 100, 10, 410
+End Sub
 
-Sub Resize()
+Sub Timeline(timelineTop As Integer, timelineHeight As Integer, _
+            zoomedTop As Integer, zoomedHeight As Integer)
+            
     Dim sh As Shape
-    Set sl = ActivePresentation.Slides(6)
+    Set sl = Application.ActiveWindow.View.Slide
     Dim shapes As New Collection
-    Dim idToShape As New Dictionary
-    Dim x As Integer
+    Dim x, mx, sumWidth As Integer
     Dim eff As Effect
     
     Dim left As Integer
-    left = 0
     
     x = ActivePresentation.PageSetup.SlideWidth / 2
     
     For Each sh In sl.shapes
-      If sh.Type = msoPicture And Not idToShape.Exists(sh.Id) Then
-      
-        Set idToShape(sh.Id) = sh
-        With sh
-         ' Set position:
-         .left = left
-         .Top = 400
-          ' Set size:
-         .Height = 100
-        End With
-        left = left + sh.Width
+      If sh.Type = msoPicture Then
         shapes.Add sh
       End If
     Next
     
+    'set height and calculate start left
+    sumWidth = 0
     For Each sh In shapes
+        sh.Height = timelineHeight
+        sumWidth = sumWidth + sh.Width
+    Next
+    left = (ActivePresentation.PageSetup.SlideWidth - sumWidth) / 2
+
+    For Each sh In shapes
+        'resize and move for timeline
+        sh.left = left
+        sh.Top = timelineTop
+        left = left + sh.Width
+    
+    
+        'copy for zoomed
         sh.Copy
         Set newShapeRange = sl.shapes.Paste
         Set newShape = newShapeRange.Item(1)
         
         With newShape
-         .Height = 300
-         .Top = 20
+         .Height = zoomedHeight
+         .Top = zoomedTop
          .left = x - (.Width / 2)
         End With
         
         Set eff = sl.Timeline.MainSequence _
         .AddEffect(Shape:=newShape, effectId:=msoAnimEffectCustom)
         
+        eff.Timing.Duration = 1
+        
+        
         Set aniMotion = eff.Behaviors.Add(msoAnimTypeMotion)
-
+        
+        'calculate percent position
+        mx = 50 - (sh.Width / 2 + sh.left) * 100 / ActivePresentation.PageSetup.SlideWidth
+        
         With aniMotion.MotionEffect
-            .FromX = -30
-            .FromY = -30
-            .ToX = 30
-            .ToY = 30
+            .FromX = -mx
+            .FromY = 50
+            .ToX = 0
+            .ToY = 0
         End With
         
         Set eff = sl.Timeline.MainSequence.AddEffect(Shape:=newShape, _
         effectId:=msoAnimEffectZoom, Trigger:=msoAnimTriggerWithPrevious)
         
+        eff.Timing.Duration = 1
     Next
     
-End Sub
-
-Sub Animation(s1 As Slide)
-' Add custom effect to the shape
-        Set effNew = sl.Timeline.MainSequence _
-        .AddEffect(Shape:=sh, effectId:=msoAnimEffectCustom, _
-        Trigger:=msoAnimTriggerWithPrevious)
-        
-        ' Add Motion effect
-        Set aniMotion = effNew.Behaviors.Add(msoAnimTypeMotion)
-        effNew.Exit = msoFalse
-        
-        ' Set Motion Path as square path
-        'aniMotion.MotionEffect.Path = "M 0 0 L 0.25 0 L 0.25 0.25 L 0 0.25 L 0 0 Z"
-        aniMotion.MotionEffect.Path = "M 0 0 L 0.125 0.216 L -0.125 0.216 L 0 0 Z"
 End Sub
